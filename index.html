@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Socket and API Test</title>
+  </head>
+  <body>
+    <h1>Socket and API Test</h1>
+
+    <h2>Chat</h2>
+    <ul id="messages"></ul>
+    <form id="form" action="#"><input id="input" autocomplete="off" /><button>Send</button></form>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io();
+
+      // Handle form submission
+      document.getElementById("form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const input = document.getElementById("input");
+        const message = input.value;
+        socket.emit("chat message", message);
+        input.value = "";
+        return false;
+      });
+
+      // Handle received messages
+      socket.on("chat message", (msg) => {
+        const li = document.createElement("li");
+        li.textContent = msg;
+        document.getElementById("messages").appendChild(li);
+      });
+
+      // Test socket connection in the browser console
+      window.testSocket = () => {
+        socket.emit("chat message", "Hello from browser console!");
+      };
+    </script>
+  </body>
+</html>
