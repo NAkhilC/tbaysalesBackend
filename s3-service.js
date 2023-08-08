@@ -2,10 +2,11 @@ const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 const { GetObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } = require("@aws-sdk/client-s3");
 
 const s3 = new S3Client({
-  region: "us-east-1",
+  region: process.env.REGION,
   credentials: {
-    accessKeyId: "AKIAW7EO5CI5BDGH7UNF",
-    secretAccessKey: "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",
+    accessKeyId: process.env.ACCESS_KEY_ID,
+    secretAccessKey: process.env.SECRET_ACCESS_KEY,
+    
   },
 });
 

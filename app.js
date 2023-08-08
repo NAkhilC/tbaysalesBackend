@@ -82,9 +82,9 @@ app.post("/login", (req, res, next) => {
   let jwtSecretKey = process.env.JWT_SECRET_KEY;
 
   AWS.config.update({
-    accessKeyId: "AKIAW7EO5CI5BDGH7UNF",
-    secretAccessKey: "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",
-    region: "us-east-1",
+    accessKeyId: process.env.ACCESS_KEY_ID,
+    secretAccessKey: process.env.SECRET_ACCESS_KEY,
+    region: process.env.REGION,
   });
   const dynamodb = new AWS.DynamoDB.DocumentClient({ apiVersion: "2012-08-10" });
 
@@ -127,9 +127,9 @@ app.post("/login", (req, res, next) => {
 //home-getitems
 app.get("/items", async (req, res, next) => {
   AWS.config.update({
-    accessKeyId: "AKIAW7EO5CI5BDGH7UNF",
-    secretAccessKey: "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",
-    region: "us-east-1",
+    accessKeyId: process.env.ACCESS_KEY_ID,
+    secretAccessKey: process.env.SECRET_ACCESS_KEY,
+    region: process.env.REGION,
   });
   let data = await getItems();
   res.send(data);
@@ -142,9 +142,9 @@ app.post("/upload", upload.array("file", 12), async (req, res) => {
   saleItem.userId = req.session.user;
 
   AWS.config.update({
-    accessKeyId: "AKIAW7EO5CI5BDGH7UNF",
-    secretAccessKey: "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",
-    region: "us-east-1",
+    accessKeyId: process.env.ACCESS_KEY_ID,
+    secretAccessKey: process.env.SECRET_ACCESS_KEY,
+    region: process.env.REGION,
   });
 
   let listingId = new Date().getTime().toString(36) + Math.random().toString(36).slice(2);
@@ -183,9 +183,9 @@ app.post("/generateToken", (req, res, next) => {
 //signup
 app.post("/signUp", async (req, res) => {
   AWS.config.update({
-    accessKeyId: "AKIAW7EO5CI5BDGH7UNF",
-    secretAccessKey: "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",
-    region: "us-east-1",
+    accessKeyId: process.env.ACCESS_KEY_ID,
+    secretAccessKey: process.env.SECRET_ACCESS_KEY,
+    region: process.env.REGION,
   });
   const dynamodb = new AWS.DynamoDB.DocumentClient({ apiVersion: "2012-08-10" });
 
@@ -231,9 +231,9 @@ app.get("/item/:id", async (req, res) => {
   const listingId = req.params.id;
   if (listingId) {
     AWS.config.update({
-      accessKeyId: "AKIAW7EO5CI5BDGH7UNF",
-      secretAccessKey: "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",
-      region: "us-east-1",
+      accessKeyId: process.env.ACCESS_KEY_ID,
+    secretAccessKey: process.env.SECRET_ACCESS_KEY,
+    region: process.env.REGION,
     });
     res.send(await getListingById(listingId));
   } else {
@@ -282,9 +282,9 @@ app.post("/items/saved", async (req, res, next) => {
 app.get("/items/mapView", async (req, res, next) => {
   //console.log(req.session.user);
   AWS.config.update({
-    accessKeyId: "AKIAW7EO5CI5BDGH7UNF",
-    secretAccessKey: "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",
-    region: "us-east-1",
+    accessKeyId: process.env.ACCESS_KEY_ID,
+    secretAccessKey: process.env.SECRET_ACCESS_KEY,
+    region: process.env.REGION,
   });
   //if (req.session && req.session.user) {
   let result = await getItemsForMap();

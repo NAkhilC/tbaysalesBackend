@@ -56,10 +56,10 @@ const getListingById = async (listingId) => {
 //get presigned urls for the images
 const generatePreSignedUrlsForImages = async (images = []) => {
   const s3 = new S3Client({
-    region: "us-east-1",
+    region: process.env.REGION,
     credentials: {
-      accessKeyId: "AKIAW7EO5CI5BDGH7UNF",
-      secretAccessKey: "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",
+      accessKeyId: process.env.ACCESS_KEY_ID,
+      secretAccessKey: process.env.SECRET_ACCESS_KEY,
     },
   });
 
@@ -74,9 +74,9 @@ const generatePreSignedUrlsForImages = async (images = []) => {
 
 const gettAppUser = async (appUser) => {
   AWS.config.update({
-    accessKeyId: "AKIAW7EO5CI5BDGH7UNF",
-    secretAccessKey: "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",
-    region: "us-east-1",
+    accessKeyId: process.env.ACCESS_KEY_ID,
+    secretAccessKey: process.env.SECRET_ACCESS_KEY,
+    region: process.env.REGION,
   });
   const dynamodb = new AWS.DynamoDB.DocumentClient({ apiVersion: "2012-08-10" });
 
