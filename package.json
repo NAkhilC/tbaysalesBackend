@@ -17,6 +17,8 @@
     "body-parser": "^1.20.2",
     "cookie-parser": "^1.4.6",
     "dotenv": "^16.3.1",
+    "expo-notifications": "^0.20.1",
+    "expo-server-sdk": "^3.7.0",
     "express": "^4.18.2",
     "express-session": "^1.17.3",
     "install": "^0.13.0",
@@ -26,6 +28,7 @@
     "nodemon": "^3.0.1",
     "npm": "^9.8.1",
     "socket.io": "^4.7.2",
+    "uuid": "^9.0.0",
     "ws": "^8.13.0"
   }
 }

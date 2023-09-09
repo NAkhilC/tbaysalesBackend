@@ -1,6 +1,7 @@
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 const { GetObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } = require("@aws-sdk/client-s3");
-
+const dotenv = require("dotenv");
+dotenv.config();
 const s3 = new S3Client({
   region: process.env.REGION,
   credentials: {
