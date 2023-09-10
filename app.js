@@ -14,6 +14,7 @@ const WebSocket = require("ws");
 const http = require("http");
 const socketIO = require("socket.io");
 const { Expo } = require("expo-server-sdk");
+const bcrypt = require("bcrypt");
 const {
   v1: uuidv1,
   v4: uuidv4,
@@ -38,6 +39,7 @@ const {
   gettAppUser,
 
 } = require("./services/getItems");
+const { encyrptPassword, comparePassword } = require("./services/passwordManager");
 
 const app = express();
 app.use(express.json());
@@ -138,20 +140,24 @@ app.get("/", (req, res) => {
 app.post("/login", async (req, res, next) => {
   let jwtSecretKey = process.env.JWT_SECRET_KEY;
 
-  if (req && req.body && req.body.username) {
+  if (req && req.body && req.body.username && req.body.password) {
     try {
       const appuser = await gettAppUser(req.body.username);
       if (appuser && appuser.status === 200) {
-        const generateTokenData = {
-          time: Date(),
-          userId: appuser.data.email,
-          name: appuser.data.name,
-        };
-        const token = await jwt.sign(generateTokenData, jwtSecretKey);
-        let response = { ...appuser.data, token: token };
-        req.session.user = appuser.data.email;
-        req.session.cookie.maxAge = Number(process.env.COOKIE_MAXAGE);
-        res.send({ status: 200, data: response });
+        if (await comparePassword(req.body.password, appuser.data.password)) {
+          const generateTokenData = {
+            time: Date(),
+            userId: appuser.data.email,
+            name: appuser.data.name,
+          };
+          const token = await jwt.sign(generateTokenData, jwtSecretKey);
+          let response = { ...appuser.data, token: token };
+          req.session.user = appuser.data.email;
+          req.session.cookie.maxAge = Number(process.env.COOKIE_MAXAGE);
+          res.send({ status: 200, data: response });
+        } else {
+          res.send({ status: 401, data: "AUTHENTOCATION_ERROR" });
+        }
       } else {
         res.send({ status: 404, data: "NO_USER_FOUND" });
       }
@@ -257,11 +263,12 @@ app.post("/signUp", async (req, res) => {
       if (appuser && appuser.status === 200) {
         res.send({ data: "USER_EXIST", status: 404 })
       } else {
+        let requestBody = JSON.parse(JSON.stringify(req.body));
+        requestBody.password = await encyrptPassword(requestBody.password);
         const params = {
           TableName: "users",
-          Item: req.body,
+          Item: requestBody,
         };
-
         await dynamodb
           .put(params)
           .promise()
