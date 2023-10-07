@@ -39,7 +39,7 @@ const getUserItems = async (userId) => {
 const getItems = async (userId) => {
   const dynamodb = new AWS.DynamoDB.DocumentClient({ apiVersion: "2012-08-10" });
   let searchId = {
-    TableName: "saleData",
+    TableName: process.env.SALEDATA,
   };
 
   let documents = await dynamodb.scan(searchId).promise();
@@ -62,7 +62,7 @@ const getListingById = async (listingId) => {
   const dynamodb = new AWS.DynamoDB.DocumentClient({ apiVersion: "2012-08-10" });
 
   let searchId = {
-    TableName: "saleData",
+    TableName: process.env.SALEDATA,
     FilterExpression: "#listingId = :listingId",
     ExpressionAttributeNames: {
       "#listingId": "listingId",
@@ -94,7 +94,7 @@ const getConversationsByListingId = async (listingId) => {
   const dynamodb = new AWS.DynamoDB.DocumentClient({ apiVersion: "2012-08-10" });
 
   let searchId = {
-    TableName: "conversation",
+    TableName: process.env.CONVERSATION,
     FilterExpression: "#listingId = :listingId",
     ExpressionAttributeNames: {
       "#listingId": "listingId",
@@ -124,7 +124,7 @@ const getChatsByUserId = async (userId) => {
   const dynamodb = new AWS.DynamoDB.DocumentClient({ apiVersion: "2012-08-10" });
 
   let searchId = {
-    TableName: "conversation",
+    TableName: process.env.CONVERSATION,
     FilterExpression: "#itemOwner = :itemOwner OR #oppChatUser = :oppChatUser",
     ExpressionAttributeNames: {
       "#itemOwner": "itemOwner",
@@ -181,7 +181,7 @@ const getMessageById = async (messageId) => {
   const dynamodb = new AWS.DynamoDB.DocumentClient({ apiVersion: "2012-08-10" });
 
   let searchId = {
-    TableName: "messages",
+    TableName: process.env.MESSAGES,
     FilterExpression: "#message_Id = :message_Id",
     ExpressionAttributeNames: {
       "#message_Id": "message_Id",
@@ -228,7 +228,7 @@ const getUsersMessages = async (conversationId) => {
   let items = []
   try {
     let itemsToSearch = {
-      TableName: "messages",
+      TableName: process.env.MESSAGES,
       FilterExpression: "#conversation_Id = :conversation_Id",
       ExpressionAttributeNames: {
         "#conversation_Id": "conversation_Id",
@@ -261,6 +261,33 @@ const getUsersMessages = async (conversationId) => {
 
 }
 
+const verifyUser = async (formData) => {
+
+  const dynamodb = new AWS.DynamoDB.DocumentClient({ apiVersion: "2012-08-10" });
+  let searchId = {
+    TableName: process.env.USERS,
+    Key: {
+      email: formData.email,
+      //find the itemId in the table that you pull from the event
+    },
+    UpdateExpression: "set verified= :verified",
+    // This expression is what updates the item attribute
+    ExpressionAttributeValues: {
+      ":verified": true,
+      //create an Expression Attribute Value to pass in the expression above
+    },
+    ReturnValues: "UPDATED_NEW",
+  };
+  let documents = await dynamodb.update(searchId).promise();
+
+  if (documents) {
+    return { status: 200, data: "Success" };
+  } else {
+    return { status: 204, data: "failed" };
+  }
+
+}
+
 const gettAppUser = async (appUser) => {
   AWS.config.update({
     accessKeyId: process.env.ACCESS_KEY_ID,
@@ -272,7 +299,7 @@ const gettAppUser = async (appUser) => {
   let data;
 
   let searchId = {
-    TableName: "users",
+    TableName: process.env.USERS,
     FilterExpression: "#email = :email",
     ExpressionAttributeNames: {
       "#email": "email",
@@ -339,9 +366,9 @@ const interestedItems = async (appUserId, listingId) => {
         } else {
           listingValues = values.concat(listingId);
         }
-        return await putItem(listingValues, "users", appUserId);
+        return await putItem(listingValues, process.env.USERS, appUserId);
       } else {
-        return await putItem([listingId], "users", appUserId);
+        return await putItem([listingId], process.env.USERS, appUserId);
       }
     } else {
       return { status: 204, data: "no user" };
@@ -368,9 +395,9 @@ const savedItems = async (appUserId, listingId) => {
       } else {
         listingValues = values.concat(listingId);
       }
-      return await putItemSaved(listingValues, "users", appUserId);
+      return await putItemSaved(listingValues, process.env.USERS, appUserId);
     } else {
-      return await putItemSaved([listingId], "users", appUserId);
+      return await putItemSaved([listingId], process.env.USERS, appUserId);
     }
   } else {
     return { status: 204, data: "no user" };
@@ -479,7 +506,7 @@ const saveChatMessages = async (sender, receiver, message, conversationId) => {
 
     if (conversationId !== undefined) {
       let searchId = {
-        TableName: 'conversation',
+        TableName: process.env.CONVERSATION,
         Key: {
           conversation_Id: conversationId,
           //find the itemId in the table that you pull from the event
@@ -505,7 +532,7 @@ const saveChatMessages = async (sender, receiver, message, conversationId) => {
         oppChatUser: sender
       }
       const conParams = {
-        TableName: "conversation",
+        TableName: process.env.CONVERSATION,
         Item: convDats,
       };
       await dynamodb
@@ -515,7 +542,7 @@ const saveChatMessages = async (sender, receiver, message, conversationId) => {
         .catch((err) => { });
     }
     const params = {
-      TableName: "messages",
+      TableName: process.env.MESSAGES,
       Item: messageData,
     };
 
@@ -546,7 +573,7 @@ const createConversationIdForUserChats = async (sender, receiver, message_Id, li
       listingId: listingId
     }
     const conParams = {
-      TableName: "conversation",
+      TableName: process.env.CONVERSATION,
       Item: conversationData,
     };
     return await dynamodb
@@ -570,7 +597,7 @@ const saveConversationLastMessage = async (conversation_Id, message_Id) => {
     const dynamodb = new AWS.DynamoDB.DocumentClient({ apiVersion: "2012-08-10" });
 
     let updateConversationChat = {
-      TableName: "conversation",
+      TableName: process.env.CONVERSATION,
       Key: {
         conversation_Id: conversation_Id,
         //find the itemId in the table that you pull from the event
@@ -606,7 +633,7 @@ const saveUserChatMessages = async (sender, message_Id, context, conversation_Id
       timeStamp: Date.now()
     }
     const params = {
-      TableName: "messages",
+      TableName: process.env.MESSAGES,
       Item: messageData,
     };
     await dynamodb
@@ -619,11 +646,110 @@ const saveUserChatMessages = async (sender, message_Id, context, conversation_Id
   }
 }
 
+const filterData = async (data) => {
+  AWS.config.update({
+    accessKeyId: process.env.ACCESS_KEY_ID,
+    secretAccessKey: process.env.SECRET_ACCESS_KEY,
+    region: process.env.REGION,
+  });
+  const dynamodb = new AWS.DynamoDB.DocumentClient({ apiVersion: "2012-08-10" });
+  try {
+    let searchId = {
+      TableName: process.env.SALEDATA, // Replace with your DynamoDB table name
+      FilterExpression: [
+        data.bath ? 'bath = :bath' : '',
+        data.beds ? 'beds = :beds' : '',
+        data.houseType ? 'houseType = :houseType' : '',
+        data.parkingType ? 'parkingType = :parkingType' : '',
+        data.price ? 'price <= :price' : ''].filter(expression => expression.indexOf(':') !== -1).join(' AND '),
+      ExpressionAttributeValues: {
+        ':bath': String(data.bath),
+        ':beds': String(data.beds),
+        ':price': String(data.price),
+        ':houseType': String(data.houseType),
+        ':parkingType': String(data.parkingType),
+      },
+    };
+
+    !data.beds ? delete searchId.ExpressionAttributeValues[':beds'] : null;
+    !data.bath ? delete searchId.ExpressionAttributeValues[':bath'] : null;
+    !data.price ? delete searchId.ExpressionAttributeValues[':price'] : null;
+    !data.houseType ? delete searchId.ExpressionAttributeValues[':houseType'] : null;
+    !data.parkingType ? delete searchId.ExpressionAttributeValues[':parkingType'] : null;
+
+    console.log(searchId);
+
+
+    const responseData = await dynamodb.scan(searchId).promise();
+    if (responseData) {
+      await responseData.Items.forEach(async (item) => {
+        let images = await generatePreSignedUrlsForImages(item.images);
+        item.images = images;
+      })
+      return { status: 200, data: responseData.Items }
+    } else {
+      return { status: 500, data: 'no items found' }
+    }
+  } catch (e) {
+    console.log(e);
+    return { status: 500, data: 'something went wrong' }
+  }
+}
+
+const filterDataWithUserPreference = async (userId, data) => {
+  if (userId) {
+    if (data && (data.beds || data.bath || data.houseType || data.parkingType || data.price)) {
+      let responseItems = await filterData(data);
+
+      if (responseItems.status === 200) {
+        const appUser = await gettAppUser(userId);
+        let address,
+          itemsData = [];
+        if (appUser && appUser.data && appUser.data.userPreference) {
+          address = appUser.data.userPreference?.address;
+
+          await responseItems.data.forEach(async (item, index) => {
+            const disance = await calculateDistance({
+              latitude: item.address.latitude,
+              longitude: item.address.longitude
+            }, {
+              address: {
+                latitude: address.latitude,
+                longitude: address.longitude
+              }, range: appUser.data.userPreference?.range
+            })
+            if (disance < appUser.data.userPreference?.range) {
+
+
+              itemsData.push(item);
+            }
+          })
+        }
+
+        // await itemsData?.forEach(async (item) => {
+        //   const imgs = await generatePreSignedUrlsForImages(item.images);
+        //   item.images = imgs;
+        //   console.log(imgs);
+        // })
+        console.log(itemsData, "&&&&&&-----");
+        return { status: 200, data: itemsData };
+      } else {
+        return { status: 500, data: 'something went wrong' }
+      }
+    } else {
+      return await getUserItems(userId);
+    }
+  } else {
+    return { status: 401, data: 'INVALID_SESSION' };
+  }
+}
+
 const updateUserPreferenceAndSortData = async (userId, data) => {
+
   if (data) {
     const dynamodb = new AWS.DynamoDB.DocumentClient({ apiVersion: "2012-08-10" });
     let searchId = {
-      TableName: "users",
+      TableName: process.env.USERS,
       Key: {
         email: userId,
         //find the itemId in the table that you pull from the event
@@ -650,7 +776,7 @@ const updateUserNotifications = async (userId, data) => {
   if (data) {
     const dynamodb = new AWS.DynamoDB.DocumentClient({ apiVersion: "2012-08-10" });
     let searchId = {
-      TableName: "users",
+      TableName: process.env.USERS,
       Key: {
         email: userId,
         //find the itemId in the table that you pull from the event
@@ -672,6 +798,8 @@ const updateUserNotifications = async (userId, data) => {
     return { status: 500 };
   }
 }
+
+
 
 const filterItems = async (origin) => {
   const items = await getItems();
@@ -731,6 +859,7 @@ const sendPushNotifications = async (receiver, messagedata) => {
       receiverInfo.data?.notifications?.phoneNotifications &&
       receiverInfo.data?.notifications?.appNotifications &&
       receiverInfo.data?.notifications?.token) {
+      console.log("****TTT");
       const message = {
         to: receiverInfo.data?.notifications?.token,
         sound: 'default',
@@ -748,13 +877,16 @@ const sendPushNotifications = async (receiver, messagedata) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(message),
-      });
+      }).then(data => {
+        console.log(data);
+      })
     }
   }
 }
 
 module.exports = {
   getItems,
+  verifyUser,
   getUserItems,
   getListingById,
   getSavedInterested,
@@ -768,6 +900,7 @@ module.exports = {
   saveUserChatMessages,
   sendPushNotifications,
   updateUserNotifications,
+  filterDataWithUserPreference,
   updateUserPreferenceAndSortData,
   createConversationIdForUserChats
 };

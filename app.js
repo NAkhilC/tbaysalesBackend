@@ -22,6 +22,7 @@ const {
 
 const {
   getItems,
+  verifyUser,
   getUserItems,
   getListingById,
   getSavedInterested,
@@ -34,12 +35,15 @@ const {
   saveUserChatMessages,
   sendPushNotifications,
   updateUserNotifications,
+  filterDataWithUserPreference,
   updateUserPreferenceAndSortData,
   createConversationIdForUserChats,
-  gettAppUser,
+  gettAppUser
 
 } = require("./services/getItems");
 const { encyrptPassword, comparePassword } = require("./services/passwordManager");
+const nodemailer = require('nodemailer');
+
 
 const app = express();
 app.use(express.json());
@@ -51,8 +55,8 @@ const users = {};
 io.on("connection", (socket) => {
   console.log("A user connected");
 
-  socket.on("join", (username) => {
-    users[socket.id] = username;
+  socket.on("join", (username, listingId) => {
+    users[socket.id] = username + listingId;
     socket.broadcast.emit("userJoined", username);
   });
 
@@ -69,6 +73,7 @@ io.on("connection", (socket) => {
         createdAt: createdAt
       });
       if (!receiverSocketId) {
+        console.log("******");
         sendPushNotifications(receiver, message);
         //send notification
       }
@@ -139,12 +144,18 @@ app.get("/", (req, res) => {
 //login
 app.post("/login", async (req, res, next) => {
   let jwtSecretKey = process.env.JWT_SECRET_KEY;
-
   if (req && req.body && req.body.username && req.body.password) {
     try {
       const appuser = await gettAppUser(req.body.username);
       if (appuser && appuser.status === 200) {
-        if (await comparePassword(req.body.password, appuser.data.password)) {
+        let passwordStatus;
+        if (req.body?.isPersistentLogin) {
+          passwordStatus = (req.body.password === appuser.data.password);
+        } else {
+          passwordStatus = await comparePassword(req.body.password, appuser.data.password);
+        }
+
+        if (passwordStatus) {
           const generateTokenData = {
             time: Date(),
             userId: appuser.data.email,
@@ -224,7 +235,7 @@ app.post("/upload", isLoggedIn, upload.array("file", 12), async (req, res) => {
   saleItem.userId = req.session.user || 'Test1@gmail.com';
   const dynamodb = new AWS.DynamoDB.DocumentClient({ apiVersion: "2012-08-10" });
   const params = {
-    TableName: "saleData",
+    TableName: process.env.SALEDATA,
     Item: saleItem,
   };
 
@@ -257,6 +268,30 @@ app.post("/signUp", async (req, res) => {
       region: process.env.REGION,
     });
     const dynamodb = new AWS.DynamoDB.DocumentClient({ apiVersion: "2012-08-10" });
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      port: 587,
+      auth: {
+        user: process.env.EMAIL, // Your Gmail email address
+        pass: process.env.PASSWORD // Your Gmail password or App Password if 2-factor authentication is enabled
+      }
+    });
+    const otp = Math.floor(Math.random() * 1000000);
+    const mailOptions = {
+      from: process.env.EMAIL,    // Sender's email address
+      to: req.body.email, // Recipient's email address
+      subject: 'Node.js Email',   // Email subject
+      text: `Hello, This is your one time passcode ${otp}` // Email body (plain text)
+    };
+
+    // Send the email
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.error('Error sending email: ' + error);
+      } else {
+        console.log('Email sent: ' + JSON.stringify(info));
+      }
+    });
 
     try {
       const appuser = await gettAppUser(req.body.email);
@@ -265,8 +300,10 @@ app.post("/signUp", async (req, res) => {
       } else {
         let requestBody = JSON.parse(JSON.stringify(req.body));
         requestBody.password = await encyrptPassword(requestBody.password);
+        requestBody.otp = otp;
+        requestBody.verified = false;
         const params = {
-          TableName: "users",
+          TableName: process.env.USERS,
           Item: requestBody,
         };
         await dynamodb
@@ -288,8 +325,34 @@ app.post("/signUp", async (req, res) => {
   }
 });
 
+//verify otp
+app.post("/verifyOTP", async (req, res) => {
+  if (req.body && req.body.email && req.body.otp) {
+    try {
+      const appuser = await gettAppUser(req.body.email);
+      if (appuser && appuser.status === 200) {
+        if (Number(appuser.data.otp) === Number(req.body.otp)) {
+          const verifyStatus = await verifyUser({ email: req.body.email, otp: req.body.otp });
+          if (verifyStatus.status === 200) {
+            res.send({ data: "success", status: 200 })
+          } else {
+            res.send({ data: "something went wrong", status: 500 })
+          }
+        } else {
+          res.send({ status: 404, data: "OTP_NOT_VALIDATED" });
+        }
+      } else {
+        res.send({ status: 404, data: "NO_USER_FOUND" });
+      }
+    } catch (e) {
+      console.log(e);
+      res.send({ data: "something went wrong", status: 500 })
+    }
+  }
+});
+
 //push notification
-app.post("/pushNotifications", async (req, res) => {
+app.post("/pushNotifications", isLoggedIn, async (req, res) => {
   AWS.config.update({
     accessKeyId: process.env.ACCESS_KEY_ID,
     secretAccessKey: process.env.SECRET_ACCESS_KEY,
@@ -326,6 +389,28 @@ app.post("/userPreference", isLoggedIn, async (req, res) => {
     res.send({ data: filterItems.data, status: 200 })
   } else {
     res.send({ data: [], status: 500 })
+  }
+
+
+});
+
+//userPreference
+app.post("/filterData", async (req, res) => {
+  AWS.config.update({
+    accessKeyId: process.env.ACCESS_KEY_ID,
+    secretAccessKey: process.env.SECRET_ACCESS_KEY,
+    region: process.env.REGION,
+  });
+  const userId = req.session.user || 'Test1@gmail.com';
+  try {
+    const filterItems = await filterDataWithUserPreference(userId, req.body)
+    if (filterItems.status === 200) {
+      res.send({ data: filterItems.data, status: 200 })
+    } else {
+      res.send({ data: [], status: 500 })
+    }
+  } catch (e) {
+    res.send({ status: 500, message: "Error finding the listing." });
   }
 
 
