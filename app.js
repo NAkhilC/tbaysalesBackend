@@ -138,7 +138,7 @@ const storage = memoryStorage();
 const upload = multer({ storage });
 
 app.get("/", (req, res) => {
-  res.sendFile(__dirname + "/index.html");
+  res.sendStatus(200);
 });
 
 //login
