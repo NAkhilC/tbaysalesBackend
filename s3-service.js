@@ -7,17 +7,17 @@ const s3 = new S3Client({
   credentials: {
     accessKeyId: process.env.ACCESS_KEY_ID,
     secretAccessKey: process.env.SECRET_ACCESS_KEY,
-    
+
   },
 });
 
 const uploadToS3 = async ({ file }, listingId) => {
-  const key = `saleImages/${listingId + file.originalname}`;
+  const key = `${process.env.IMAGES_PATH}/${listingId + file.originalname}`;
   const command = new PutObjectCommand({
     Key: key,
     Body: file.buffer,
     ContentType: file.mimetype,
-    Bucket: "saleimages",
+    Bucket: process.env.BUCKET,
   });
 
   try {
